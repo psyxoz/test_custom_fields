@@ -1,8 +1,7 @@
 class User < ApplicationRecord
   include CustomFields
 
-  custom_fields name:   :text_field,
-                age:    :number_field,
-                gender: :single_select,
-                roles:  :multiple_select
+  custom_fields :name, :age, :gender, :roles
+
+  validates :email, presence: true, uniqueness: true
 end

@@ -1,20 +1,19 @@
 module CustomFields
   extend ActiveSupport::Concern
 
-  class_methods do
-    def custom_fields(**attrs)
-      return unless attrs
+  module ClassMethods
+    def custom_fields(*fields)
+      return if fields.blank?
       return if local_stored_attributes&.[](:custom_fields).present?
 
-      labels = attrs.values.map(&:to_s)
-      differences = labels - CustomField.pluck(:label)
+      differences = fields - CustomField.pluck(:label).map(&:to_sym)
       raise "Unknown custom fields: #{differences.join(', ')}" if differences.present?
 
-      store :custom_fields, accessors: attrs.keys
-      custom_fields_storage = CustomField.where(label: labels).group_by(&:label).to_h
+      store :custom_fields, accessors: fields
+      custom_fields_storage = CustomField.where(label: fields).group_by(&:label).to_h
 
-      attrs.each do |attribute, field_label|
-        custom_field = custom_fields_storage[field_label]
+      fields.each do |attribute|
+        custom_field = custom_fields_storage[attribute.to_s].first
 
         validators = {}
         if custom_field.text_field?
@@ -25,7 +24,7 @@ module CustomFields
           validators[:inclusion] = { in: custom_field.field_value }
         end
 
-        validates(attribute.to_sym, **validators) if validators.present?
+        validates(attribute, **validators) if validators.present?
       end
     end
   end
